@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import timeWizard.bilnut.enums.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Entity
@@ -46,18 +47,11 @@ public class Course {
     @Column(nullable = false)
     private String courseType; // 이수 구분 '교양 선택', '전공 핵심'
 
-    @Enumerated(EnumType.STRING)
-    private DayOfWeek dayOfWeek;
-
-    private Integer startTime;
-
-    private Integer endTime;
-
-    @Column(length = 100)
-    private String classroom;
-
     private Integer capacity;
 
     @Column(length = 10)
     private String semester;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.REMOVE)
+    List<CourseTimes> courseTimes = new ArrayList<>();
 }
