@@ -39,6 +39,18 @@ public class User {
 
     private String userPreferences;
 
+    private Integer totalRequiredCredit;
+
+    private Integer majorRequiredCredit;
+
+    private Integer generalRequiredCredit;
+
+    private Integer totalEarnedCredit;
+
+    private Integer majorEarnedCredit;
+
+    private Integer generalEarnedCredit;
+
     @CreatedDate
     private LocalDateTime createdAt;
 

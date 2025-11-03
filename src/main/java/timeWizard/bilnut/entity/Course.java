@@ -22,19 +22,29 @@ public class Course {
     @Column(length = 200, nullable = false)
     private String courseName;
 
+    private String courseEnglishName;
+
+    private Integer courseNumber;
+
     @Column(length = 100)
     private String professor;
 
     @Column(length = 100)
-    private String major;  // (NULL 가능)
+    private String major; // 교양이면 'ERICA 대학'
+
+    private Integer section; // 분반
 
     private Integer grade; // 대상 학년 (NULL 가능)
 
     @Column(nullable = false)
     private Integer credits;
 
+    private Integer lectureHours;
+
+    private Integer practiceHours;
+
     @Column(nullable = false)
-    private String courseType;
+    private String courseType; // 이수 구분 '교양 선택', '전공 핵심'
 
     @Enumerated(EnumType.STRING)
     private DayOfWeek dayOfWeek;
