@@ -6,10 +6,8 @@ import lombok.*;
 import java.util.List;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class AiTimetableResponse {
 
     private List<Course> courses;
@@ -18,10 +16,8 @@ public class AiTimetableResponse {
     private String aiComment;
 
     @Getter
-    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
     public static class Course {
         @JsonProperty("course_id")
         private String courseId;

@@ -18,8 +18,8 @@ import java.util.List;
 @AllArgsConstructor
 public class Timetable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
+    @Column(length = 36)
+    private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -41,6 +41,6 @@ public class Timetable {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "timetable", cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "timetable", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     private List<TimetableCourse> timetableCourses = new ArrayList<>();
 }

@@ -10,17 +10,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import timeWizard.bilnut.config.exception.EntityNotFound;
 import timeWizard.bilnut.config.exception.NoDeletedRowException;
 import timeWizard.bilnut.dto.AiRequestFormData;
 import timeWizard.bilnut.dto.AiTimetableRequestData;
 import timeWizard.bilnut.dto.AiTimetableResponse;
+import timeWizard.bilnut.dto.TimetableSaveRequestData;
 import timeWizard.bilnut.entity.Timetable;
+import timeWizard.bilnut.entity.TimetableCourse;
 import timeWizard.bilnut.entity.User;
+import timeWizard.bilnut.repository.CourseRepository;
 import timeWizard.bilnut.repository.TimeTableRepository;
+import timeWizard.bilnut.repository.TimetableCourseRepository;
 import timeWizard.bilnut.repository.UserRepository;
-
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -32,6 +35,8 @@ public class TimeTableService {
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final CourseRepository courseRepository;
+    private final TimetableCourseRepository timetableCourseRepository;
 
     public String requestAiTimeTable(AiTimetableRequestData aiTimetableRequestData, Long userId) {
         String redisKey = UUID.randomUUID().toString();
@@ -52,45 +57,44 @@ public class TimeTableService {
                 "https://nuc-opencloud.pdj.kr/data/likelion/time_wizard/demo_data/erica_sugang_1001.csv",
                 "https://site.hanyang.ac.kr/documents/11050741/13154841/이수체계도(로봇공학과).png?t=1684909574755");
 
-        Mono<AiTimetableResponse> timetableResponseMono = webClient.post()
+        webClient.post()
                 .uri("/generate-timetable")
                 .bodyValue(aiRequestFormData)
                 .retrieve()
-                .bodyToMono(AiTimetableResponse.class)
-                .doOnSuccess(response -> {
-                    try {
-                        String jsonResponse = objectMapper.writeValueAsString(response);
-                        redisTemplate.opsForValue().set(redisKey, jsonResponse, Duration.ofMinutes(10));
-
-                    } catch (JsonProcessingException e) {
-                        log.error("Redis 응답 저장 실패: JSON 직렬화 오류", e);
-                    }})
+                .bodyToMono(String.class)
+                .doOnSuccess(jsonResponse ->
+                        redisTemplate.opsForValue().set(redisKey, jsonResponse, Duration.ofMinutes(10)))
                 .doOnError(error ->
-                        redisTemplate.opsForValue().set(redisKey, "ERROR", Duration.ofMinutes(10)));
-    }
-
-//    private void saveTimetable(AiTimetableResponse aiTimetableResponse, Long userId) {
-//        User user = userRepository.getReferenceById(userId);
-//
-//        Timetable timetable = Timetable.builder()
-//                .aiComment(aiTimetableResponse.getAiComment())
-//                .user(user).build();
-//
-//
-//        timeTableRepository.save(timetable);
-//    }
-
-
-    @Transactional
-    public void saveTimetable(String redisKey, String timetableName) {
-        Timetable timetable = timeTableRepository.findByRedisKey(redisKey)
-                .orElseThrow(() -> new EntityNotFound("timetable not found by given key"));
-
-        timetable.setTimetableName(timetableName);
+                        redisTemplate.opsForValue().set(redisKey, "ERROR", Duration.ofMinutes(10)))
+                .subscribe();
     }
 
     @Transactional
-    public void deleteTimeTable(Long timetableId) {
+    public void saveTimetable(TimetableSaveRequestData timetableSaveRequestData, Long userId) {
+        User user = userRepository.getReferenceById(userId);
+
+        Timetable timetable = Timetable.builder()
+                .id(timetableSaveRequestData.getUuidKey())
+                .aiComment(timetableSaveRequestData.getAiComment())
+                .user(user)
+                .timetableName(timetableSaveRequestData.getName())
+                .build();
+
+        List<TimetableCourse> timetableCourseList = timetableSaveRequestData.getCourseIds()
+                        .stream().map(id ->
+                        TimetableCourse.builder()
+                                .course(courseRepository.getReferenceById(id))
+                                .timetable(timetable).build()).toList();
+
+        timetable.getTimetableCourses().addAll(timetableCourseList);
+
+        timeTableRepository.save(timetable);
+    }
+
+
+
+    @Transactional
+    public void deleteTimeTable(String timetableId) {
         int deletedRows = timeTableRepository.deleteByIdCustom(timetableId);
 
         if (deletedRows == 0) {

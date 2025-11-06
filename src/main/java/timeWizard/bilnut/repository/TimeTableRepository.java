@@ -8,10 +8,10 @@ import timeWizard.bilnut.entity.Timetable;
 
 import java.util.Optional;
 
-public interface TimeTableRepository extends JpaRepository<Timetable, Long> {
+public interface TimeTableRepository extends JpaRepository<Timetable, String> {
     @Modifying
     @Query("DELETE FROM Timetable t WHERE t.id = :id")
-    int deleteByIdCustom(@Param("id") Long id);
+    int deleteByIdCustom(@Param("id") String id);
 
     Optional<Timetable> findByRedisKey(String redisKey);
 }

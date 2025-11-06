@@ -1,9 +1,7 @@
 package timeWizard.bilnut.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -20,11 +18,14 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
 public class TimetableCourse {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "timetable_course_seq")
+    @SequenceGenerator(name = "timetable_course_seq", sequenceName = "timetable_course_seq", allocationSize = 50)
     private Long timetableCourseId;
 
     @ManyToOne(fetch = FetchType.LAZY)
