@@ -26,13 +26,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, HandlerMappingIntrospector introspector) throws Exception {
-        // Spring Security 체크 제외 목록
-        MvcRequestMatcher.Builder mvc = new MvcRequestMatcher.Builder(introspector);
-        MvcRequestMatcher[] permitAllList = {
-                mvc.pattern("/api/auth/**"),      // 로그인, 토큰 갱신 등 인증 관련 API
-                mvc.pattern("/members/sign-in")   // 기존 경로 유지
-        };
-
         http
                 // CSRF 비활성화 (JWT 사용 시 불필요)
                 .csrf(AbstractHttpConfigurer::disable)
@@ -44,7 +37,8 @@ public class SecurityConfig {
                 // 인증 규칙 설정
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
-                        .requestMatchers(permitAllList).permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/members/sign-in").permitAll()
                         // 삭제는 관리자 권한만 가능
                         .requestMatchers(HttpMethod.DELETE, "/user").hasRole("ADMIN")
                         .requestMatchers("/members/role").hasRole("USER")
