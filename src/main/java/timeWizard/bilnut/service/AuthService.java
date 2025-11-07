@@ -36,9 +36,7 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
 
-    /**
-     * 로그인
-     */
+    // 로그인
     @Transactional
     public LoginResponse login(LoginRequest request) {
         try {
@@ -77,9 +75,7 @@ public class AuthService {
         }
     }
 
-    /**
-     * Refresh Token으로 새로운 Access Token 발급
-     */
+    // Refresh Token으로 새로운 Access Token 발급
     @Transactional
     public TokenRefreshResponse refreshAccessToken(String refreshToken) {
         // 1. Refresh Token 유효성 검증
@@ -117,9 +113,6 @@ public class AuthService {
         return TokenRefreshResponse.of(newAccessToken, newRefreshToken, accessTokenExpiration / 1000);
     }
 
-    /**
-     * 로그아웃 (Refresh Token 삭제)
-     */
     @Transactional
     public void logout(String loginId) {
         refreshTokenRepository.findByLoginId(loginId)
