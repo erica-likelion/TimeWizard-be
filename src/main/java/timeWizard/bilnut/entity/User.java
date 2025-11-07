@@ -21,39 +21,26 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-    @Column(length = 50, unique = true, nullable = false)
-    private String loginId;
-
     @Column(length = 255, unique = true, nullable = false)
     private String email;
 
     @Column(length = 255, nullable = false)
     private String password;
 
-    @Column(length = 50)
+    @Column(length = 50, nullable = false)
     private String nickname;
 
-    @Column( length = 100)
+    @Column(length = 20)
+    private String phoneNumber;
+
+    @Column(length = 100, nullable = false)
     private String university;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String major;
 
+    @Column(nullable = false)
     private Integer grade;
-
-    private String userPreferences;
-
-    private Integer totalRequiredCredit;
-
-    private Integer majorRequiredCredit;
-
-    private Integer generalRequiredCredit;
-
-    private Integer totalEarnedCredit;
-
-    private Integer majorEarnedCredit;
-
-    private Integer generalEarnedCredit;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -62,22 +49,14 @@ public class User {
     private LocalDateTime updatedAt;
     
     @Builder
-    public User(String loginId, String email, String password, String nickname, 
-                String university, String major, Integer grade, String userPreferences,
-                Integer totalRequiredCredit, Integer majorRequiredCredit, Integer generalRequiredCredit) {
-        this.loginId = loginId;
+    public User(String email, String password, String nickname, String phoneNumber,
+                String university, String major, Integer grade) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
+        this.phoneNumber = phoneNumber;
         this.university = university;
         this.major = major;
         this.grade = grade;
-        this.userPreferences = userPreferences;
-        this.totalRequiredCredit = totalRequiredCredit;
-        this.majorRequiredCredit = majorRequiredCredit;
-        this.generalRequiredCredit = generalRequiredCredit;
-        this.totalEarnedCredit = 0;
-        this.majorEarnedCredit = 0;
-        this.generalEarnedCredit = 0;
     }
 }

@@ -42,10 +42,6 @@ public class AuthService {
     @Transactional
     public SignUpResponse signUp(SignUpRequest request) {
         // 1. 중복 체크
-        if (userRepository.findByLoginId(request.getLoginId()).isPresent()) {
-            throw new RuntimeException("이미 존재하는 아이디입니다.");
-        }
-        
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("이미 존재하는 이메일입니다.");
         }
@@ -55,17 +51,13 @@ public class AuthService {
 
         // 3. 사용자 생성
         User user = User.builder()
-                .loginId(request.getLoginId())
                 .email(request.getEmail())
                 .password(encodedPassword)
                 .nickname(request.getNickname())
+                .phoneNumber(request.getPhoneNumber())
                 .university(request.getUniversity())
                 .major(request.getMajor())
                 .grade(request.getGrade())
-                .userPreferences(request.getUserPreferences())
-                .totalRequiredCredit(request.getTotalRequiredCredit())
-                .majorRequiredCredit(request.getMajorRequiredCredit())
-                .generalRequiredCredit(request.getGeneralRequiredCredit())
                 .build();
 
         // 4. 사용자 저장
@@ -74,7 +66,6 @@ public class AuthService {
         // 5. 응답 반환
         return SignUpResponse.of(
                 savedUser.getUserId(),
-                savedUser.getLoginId(),
                 savedUser.getEmail(),
                 savedUser.getNickname()
         );
@@ -84,28 +75,28 @@ public class AuthService {
     @Transactional
     public LoginResponse login(LoginRequest request) {
         try {
-            // 1. loginId/비밀번호 기반 인증
+            // 1. email/비밀번호 기반 인증
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getLoginId(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
 
             // 2. 인증 성공 시 사용자 조회
-            User user = userRepository.findByLoginId(request.getLoginId())
+            User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             // 3. Access Token 생성
-            String accessToken = jwtTokenProvider.generateAccessToken(user.getLoginId());
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
 
             // 4. Refresh Token 생성
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getLoginId());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
 
             // 5. Refresh Token을 DB에 저장 (기존 토큰이 있으면 삭제 후 저장)
-            refreshTokenRepository.findByLoginId(user.getLoginId())
+            refreshTokenRepository.findByLoginId(user.getEmail())
                     .ifPresent(refreshTokenRepository::delete);
 
             RefreshToken refreshTokenEntity = RefreshToken.builder()
                     .token(refreshToken)
-                    .loginId(user.getLoginId())
+                    .loginId(user.getEmail())
                     .expiryDate(LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
                     .build();
 
@@ -115,7 +106,7 @@ public class AuthService {
             return LoginResponse.of(accessToken, refreshToken, accessTokenExpiration / 1000);
 
         } catch (AuthenticationException e) {
-            throw new RuntimeException("Invalid loginId or password");
+            throw new RuntimeException("Invalid email or password");
         }
     }
 
@@ -158,8 +149,8 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(String loginId) {
-        refreshTokenRepository.findByLoginId(loginId)
+    public void logout(String email) {
+        refreshTokenRepository.findByLoginId(email)
                 .ifPresent(refreshTokenRepository::delete);
     }
 }
