@@ -2,6 +2,7 @@ package timeWizard.bilnut.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -59,4 +60,24 @@ public class User {
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    
+    @Builder
+    public User(String loginId, String email, String password, String nickname, 
+                String university, String major, Integer grade, String userPreferences,
+                Integer totalRequiredCredit, Integer majorRequiredCredit, Integer generalRequiredCredit) {
+        this.loginId = loginId;
+        this.email = email;
+        this.password = password;
+        this.nickname = nickname;
+        this.university = university;
+        this.major = major;
+        this.grade = grade;
+        this.userPreferences = userPreferences;
+        this.totalRequiredCredit = totalRequiredCredit;
+        this.majorRequiredCredit = majorRequiredCredit;
+        this.generalRequiredCredit = generalRequiredCredit;
+        this.totalEarnedCredit = 0;
+        this.majorEarnedCredit = 0;
+        this.generalEarnedCredit = 0;
+    }
 }

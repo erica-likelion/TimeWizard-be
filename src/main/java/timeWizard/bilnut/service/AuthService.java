@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import timeWizard.bilnut.config.JwtTokenProvider;
 import timeWizard.bilnut.dto.LoginRequest;
 import timeWizard.bilnut.dto.LoginResponse;
+import timeWizard.bilnut.dto.SignUpRequest;
+import timeWizard.bilnut.dto.SignUpResponse;
 import timeWizard.bilnut.dto.TokenRefreshResponse;
 import timeWizard.bilnut.entity.RefreshToken;
 import timeWizard.bilnut.entity.User;
@@ -35,6 +37,48 @@ public class AuthService {
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
+
+    // 회원가입
+    @Transactional
+    public SignUpResponse signUp(SignUpRequest request) {
+        // 1. 중복 체크
+        if (userRepository.findByLoginId(request.getLoginId()).isPresent()) {
+            throw new RuntimeException("이미 존재하는 아이디입니다.");
+        }
+        
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("이미 존재하는 이메일입니다.");
+        }
+
+        // 2. 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+        // 3. 사용자 생성
+        User user = User.builder()
+                .loginId(request.getLoginId())
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .nickname(request.getNickname())
+                .university(request.getUniversity())
+                .major(request.getMajor())
+                .grade(request.getGrade())
+                .userPreferences(request.getUserPreferences())
+                .totalRequiredCredit(request.getTotalRequiredCredit())
+                .majorRequiredCredit(request.getMajorRequiredCredit())
+                .generalRequiredCredit(request.getGeneralRequiredCredit())
+                .build();
+
+        // 4. 사용자 저장
+        User savedUser = userRepository.save(user);
+
+        // 5. 응답 반환
+        return SignUpResponse.of(
+                savedUser.getUserId(),
+                savedUser.getLoginId(),
+                savedUser.getEmail(),
+                savedUser.getNickname()
+        );
+    }
 
     // 로그인
     @Transactional
