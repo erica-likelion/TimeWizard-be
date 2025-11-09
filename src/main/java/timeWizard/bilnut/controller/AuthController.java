@@ -15,6 +15,7 @@ import timeWizard.bilnut.dto.SignUpRequest;
 import timeWizard.bilnut.dto.SignUpResponse;
 import timeWizard.bilnut.dto.TokenRefreshResponse;
 import timeWizard.bilnut.service.AuthService;
+import timeWizard.bilnut.util.CookieUtil;
 
 @RestController
 @RequestMapping("/auth")
@@ -34,12 +35,7 @@ public class AuthController {
         LoginResponse loginResponse = authService.login(request);
         
         // Refresh Token을 HttpOnly 쿠키로 설정
-        Cookie refreshCookie = new Cookie("refreshToken", authService.getLastRefreshToken());
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true); // HTTPS 사용 시
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
-        response.addCookie(refreshCookie);
+        CookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
         
         return ResponseEntity.ok(loginResponse);
     }
@@ -64,12 +60,7 @@ public class AuthController {
         TokenRefreshResponse tokenResponse = authService.refreshAccessToken(refreshToken);
         
         // 새로운 Refresh Token을 쿠키로 설정
-        Cookie refreshCookie = new Cookie("refreshToken", authService.getLastRefreshToken());
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60);
-        response.addCookie(refreshCookie);
+        CookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
         
         return ResponseEntity.ok(tokenResponse);
     }
@@ -79,12 +70,7 @@ public class AuthController {
         authService.logout(userDetails.getUsername());
         
         // Refresh Token 쿠키 삭제
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0); // 즉시 만료
-        response.addCookie(refreshCookie);
+        CookieUtil.deleteRefreshToken(response);
         
         return ResponseEntity.ok("Logout successful");
     }
