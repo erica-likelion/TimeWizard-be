@@ -73,6 +73,6 @@ public class AuthController {
         // Refresh Token 쿠키 삭제
         cookieUtil.deleteRefreshToken(response);
         
-        return ResponseEntity.ok("Logout successful");
+        return ResponseEntity.ok("로그아웃되었습니다.");
     }
 }
