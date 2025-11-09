@@ -37,10 +37,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
                         .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
-                        .requestMatchers("/members/sign-in").permitAll()
-                        // 삭제는 관리자 권한만 가능
-                        .requestMatchers(HttpMethod.DELETE, "/user").hasRole("ADMIN")
-                        .requestMatchers("/members/role").hasRole("USER")
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )

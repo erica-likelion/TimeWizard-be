@@ -37,6 +37,8 @@ public class AuthService {
 
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
+    
+    private String lastGeneratedRefreshToken;
 
     // 회원가입
     @Transactional
@@ -89,21 +91,22 @@ public class AuthService {
 
             // 4. Refresh Token 생성
             String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+            this.lastGeneratedRefreshToken = refreshToken;
 
             // 5. Refresh Token을 DB에 저장 (기존 토큰이 있으면 삭제 후 저장)
-            refreshTokenRepository.findByLoginId(user.getEmail())
+            refreshTokenRepository.findByUser(user)
                     .ifPresent(refreshTokenRepository::delete);
 
             RefreshToken refreshTokenEntity = RefreshToken.builder()
                     .token(refreshToken)
-                    .loginId(user.getEmail())
+                    .user(user)
                     .expiryDate(LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
                     .build();
 
             refreshTokenRepository.save(refreshTokenEntity);
 
             // 6. 로그인 응답 반환
-            return LoginResponse.of(accessToken, refreshToken, accessTokenExpiration / 1000);
+            return LoginResponse.of(accessToken, accessTokenExpiration / 1000);
 
         } catch (AuthenticationException e) {
             throw new RuntimeException("Invalid email or password");
@@ -129,28 +132,35 @@ public class AuthService {
         }
 
         // 4. 새로운 Access Token 생성
-        String newAccessToken = jwtTokenProvider.generateAccessToken(storedToken.getLoginId());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(storedToken.getUser().getEmail());
 
         // 5. 새로운 Refresh Token 생성 (선택사항 - Refresh Token도 갱신)
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(storedToken.getLoginId());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(storedToken.getUser().getEmail());
+        this.lastGeneratedRefreshToken = newRefreshToken;
 
         // 6. 기존 Refresh Token 삭제 후 새로운 토큰 저장
         refreshTokenRepository.delete(storedToken);
 
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
                 .token(newRefreshToken)
-                .loginId(storedToken.getLoginId())
+                .user(storedToken.getUser())
                 .expiryDate(LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000))
                 .build();
 
         refreshTokenRepository.save(newRefreshTokenEntity);
 
-        return TokenRefreshResponse.of(newAccessToken, newRefreshToken, accessTokenExpiration / 1000);
+        return TokenRefreshResponse.of(newAccessToken, accessTokenExpiration / 1000);
     }
 
     @Transactional
     public void logout(String email) {
-        refreshTokenRepository.findByLoginId(email)
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        refreshTokenRepository.findByUser(user)
                 .ifPresent(refreshTokenRepository::delete);
+    }
+    
+    public String getLastRefreshToken() {
+        return this.lastGeneratedRefreshToken;
     }
 }

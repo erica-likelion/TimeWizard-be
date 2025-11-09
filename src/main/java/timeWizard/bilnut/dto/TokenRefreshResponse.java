@@ -12,14 +12,12 @@ import lombok.NoArgsConstructor;
 public class TokenRefreshResponse {
 
     private String accessToken;
-    private String refreshToken;
     private String tokenType;
     private Long expiresIn;
 
-    public static TokenRefreshResponse of(String accessToken, String refreshToken, Long expiresIn) {
+    public static TokenRefreshResponse of(String accessToken, Long expiresIn) {
         return TokenRefreshResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(expiresIn)
                 .build();
