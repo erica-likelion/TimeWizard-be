@@ -23,6 +23,7 @@ import timeWizard.bilnut.util.CookieUtil;
 public class AuthController {
 
     private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     @PostMapping("/register")
     public ResponseEntity<SignUpResponse> signUp(@RequestBody SignUpRequest request) {
@@ -35,7 +36,7 @@ public class AuthController {
         LoginResponse loginResponse = authService.login(request);
         
         // Refresh Token을 HttpOnly 쿠키로 설정
-        CookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
+        cookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
         
         return ResponseEntity.ok(loginResponse);
     }
@@ -60,7 +61,7 @@ public class AuthController {
         TokenRefreshResponse tokenResponse = authService.refreshAccessToken(refreshToken);
         
         // 새로운 Refresh Token을 쿠키로 설정
-        CookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
+        cookieUtil.setRefreshToken(response, authService.getLastRefreshToken());
         
         return ResponseEntity.ok(tokenResponse);
     }
@@ -70,7 +71,7 @@ public class AuthController {
         authService.logout(userDetails.getUsername());
         
         // Refresh Token 쿠키 삭제
-        CookieUtil.deleteRefreshToken(response);
+        cookieUtil.deleteRefreshToken(response);
         
         return ResponseEntity.ok("Logout successful");
     }
