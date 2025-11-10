@@ -4,12 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import timeWizard.bilnut.dto.AiStatusResponse;
-import timeWizard.bilnut.dto.AiTimetableRequestData;
-import timeWizard.bilnut.dto.AiTimetableResponse;
-import timeWizard.bilnut.dto.TimetableSaveRequestData;
+import timeWizard.bilnut.dto.*;
 import timeWizard.bilnut.service.TimeTableService;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,12 +27,12 @@ public class TimeTableController {
 
     @PostMapping("/ai/generate-timetable")
     public ResponseEntity<String> requestAiTimetable(@RequestBody AiTimetableRequestData aiTimetableRequestData) {
-        String uuidKey =  timeTableService.requestAiTimeTable(aiTimetableRequestData, 1L); // 로그인 구현안돼서 더미 데이터
+        String uuidKey =  timeTableService.requestAiTimeTable(aiTimetableRequestData);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(uuidKey);
     }
 
     @PostMapping("/save-timetable")
-    public ResponseEntity<Void> saveTimetable(TimetableSaveRequestData timetableSaveRequestData) {
+    public ResponseEntity<Void> saveTimetable(TimetableSaveRequestData timetableSaveRequestData, @AuthenticationPrincipal UserDetails userDetails) {
         timeTableService.saveTimetable(timetableSaveRequestData, 1L);
         return ResponseEntity.ok().build();
     }
@@ -54,5 +56,11 @@ public class TimeTableController {
             AiStatusResponse response = new AiStatusResponse("COMPLETE", "시간표 생성 완료", val);
             return ResponseEntity.ok(response);
         }
+    }
+
+
+    @GetMapping("/timetable/lists")
+    public ResponseEntity<List<TimetableListData>> getTimetableIds(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.status(HttpStatus.OK).body(timeTableService.getTimetableList(1L));
     }
 }

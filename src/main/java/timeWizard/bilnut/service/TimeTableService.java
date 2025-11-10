@@ -11,10 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import timeWizard.bilnut.config.exception.NoDeletedRowException;
-import timeWizard.bilnut.dto.AiRequestFormData;
-import timeWizard.bilnut.dto.AiTimetableRequestData;
-import timeWizard.bilnut.dto.AiTimetableResponse;
-import timeWizard.bilnut.dto.TimetableSaveRequestData;
+import timeWizard.bilnut.dto.*;
 import timeWizard.bilnut.entity.Timetable;
 import timeWizard.bilnut.entity.TimetableCourse;
 import timeWizard.bilnut.entity.User;
@@ -38,20 +35,20 @@ public class TimeTableService {
     private final CourseRepository courseRepository;
     private final TimetableCourseRepository timetableCourseRepository;
 
-    public String requestAiTimeTable(AiTimetableRequestData aiTimetableRequestData, Long userId) {
+    public String requestAiTimeTable(AiTimetableRequestData aiTimetableRequestData) {
         String redisKey = UUID.randomUUID().toString();
 
         redisTemplate.opsForValue().set(redisKey, "WAITING", Duration.ofMinutes(10));
         sendAiRequest(aiTimetableRequestData.requestText(),
                 aiTimetableRequestData.maxCredit(),
                 aiTimetableRequestData.targetCredit(),
-                redisKey, userId);
+                redisKey);
         return redisKey;
     }
 
     @Async("aiApiRequestExecutor")
     @Transactional
-    public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey, Long userId) { // 아직 로그인이 구현이 안돼서 더미 데이터로 구현
+    public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey) { // 아직 로그인이 구현이 안돼서 더미 데이터로 구현
         AiRequestFormData aiRequestFormData = new AiRequestFormData("로봇공학과",
                 2, 1, targetCredit, maxCredit, requestText,
                 "https://nuc-opencloud.pdj.kr/data/likelion/time_wizard/demo_data/erica_sugang_1001.csv",
@@ -100,5 +97,9 @@ public class TimeTableService {
         if (deletedRows == 0) {
             throw new NoDeletedRowException("No deleted row found");
         }
+    }
+
+    public List<TimetableListData> getTimetableList(Long userId) {
+        return timeTableRepository.getTimetableList(userId);
     }
 }
