@@ -102,4 +102,14 @@ public class TimeTableService {
     public List<TimetableListData> getTimetableList(Long userId) {
         return timeTableRepository.getTimetableList(userId);
     }
+
+
+    public List<CourseResponseDTO> getTimetableCourses(String timetableId) {
+        List<TimetableCourse> timetableCourses = timetableCourseRepository
+                .findByTimetableIdWithCourseAndTimes(timetableId);
+
+        return timetableCourses.stream()
+                .map(tc -> CourseResponseDTO.from(tc.getCourse()))
+                .toList();
+    }
 }

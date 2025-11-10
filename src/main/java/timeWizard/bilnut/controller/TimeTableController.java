@@ -63,4 +63,10 @@ public class TimeTableController {
     public ResponseEntity<List<TimetableListData>> getTimetableIds(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.OK).body(timeTableService.getTimetableList(1L));
     }
+
+    @GetMapping("/timetable/{id}/courses")
+    public ResponseEntity<List<CourseResponseDTO>> getCourses(@PathVariable("id") String timetableId) {
+        List<CourseResponseDTO> courses = timeTableService.getTimetableCourses(timetableId);
+        return ResponseEntity.ok(courses);
+    }
 }
