@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import timeWizard.bilnut.dto.*;
+import timeWizard.bilnut.security.CustomUserDetails;
 import timeWizard.bilnut.service.TimeTableService;
 
 import java.util.List;
@@ -32,8 +33,8 @@ public class TimeTableController {
     }
 
     @PostMapping("/save-timetable")
-    public ResponseEntity<Void> saveTimetable(TimetableSaveRequestData timetableSaveRequestData, @AuthenticationPrincipal UserDetails userDetails) {
-        timeTableService.saveTimetable(timetableSaveRequestData, 1L);
+    public ResponseEntity<Void> saveTimetable(@RequestBody TimetableSaveRequestData timetableSaveRequestData, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        timeTableService.saveTimetable(timetableSaveRequestData, userDetails.getUserId());
         return ResponseEntity.ok().build();
     }
 
@@ -60,8 +61,9 @@ public class TimeTableController {
 
 
     @GetMapping("/timetable/lists")
-    public ResponseEntity<List<TimetableListData>> getTimetableIds(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.status(HttpStatus.OK).body(timeTableService.getTimetableList(1L));
+    public ResponseEntity<List<TimetableListData>> getTimetableIds(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(timeTableService.getTimetableList(userDetails.getUserId()));
     }
 
     @GetMapping("/timetable/{id}/courses")

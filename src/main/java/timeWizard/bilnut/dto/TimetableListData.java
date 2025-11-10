@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class TimetableListData {
-    private Long timetableId;
+    private String timetableId;
     private String name;
 }

@@ -19,7 +19,7 @@ import java.util.List;
 public class Timetable {
     @Id
     @Column(length = 36)
-    private String id;
+    private String id; // redis transaction uuid key 그대로 pk로 사용
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -29,9 +29,8 @@ public class Timetable {
     @Column(length = 100)
     private String timetableName;
 
+    @Lob
     private String aiComment;
-
-    private String redisKey;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -41,6 +40,7 @@ public class Timetable {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "timetable", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    @Builder.Default
+    @OneToMany(mappedBy = "timetable",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimetableCourse> timetableCourses = new ArrayList<>();
 }

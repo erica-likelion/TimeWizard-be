@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import timeWizard.bilnut.config.exception.NoDeletedRowException;
@@ -31,7 +32,6 @@ public class TimeTableService {
     private final WebClient webClient;
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
-    private final ObjectMapper objectMapper;
     private final CourseRepository courseRepository;
     private final TimetableCourseRepository timetableCourseRepository;
 
@@ -51,7 +51,7 @@ public class TimeTableService {
     public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey) { // 아직 로그인이 구현이 안돼서 더미 데이터로 구현
         AiRequestFormData aiRequestFormData = new AiRequestFormData("로봇공학과",
                 2, 1, targetCredit, maxCredit, requestText,
-                "https://nuc-opencloud.pdj.kr/data/likelion/time_wizard/demo_data/erica_sugang_1001.csv",
+                "https://storage.googleapis.com/mysmbuckettt/erica_courses_filtered.csv",
                 "https://site.hanyang.ac.kr/documents/11050741/13154841/이수체계도(로봇공학과).png?t=1684909574755");
 
         webClient.post()
@@ -68,7 +68,12 @@ public class TimeTableService {
 
     @Transactional
     public void saveTimetable(TimetableSaveRequestData timetableSaveRequestData, Long userId) {
+        log.info("=== saveTimetable 시작 ===");
+        log.info("userId: {}", userId);
+        log.info("uuidKey: {}", timetableSaveRequestData.getUuidKey());
+
         User user = userRepository.getReferenceById(userId);
+        log.info("User: {}", user);
 
         Timetable timetable = Timetable.builder()
                 .id(timetableSaveRequestData.getUuidKey())
@@ -77,15 +82,51 @@ public class TimeTableService {
                 .timetableName(timetableSaveRequestData.getName())
                 .build();
 
-        List<TimetableCourse> timetableCourseList = timetableSaveRequestData.getCourseIds()
-                        .stream().map(id ->
-                        TimetableCourse.builder()
-                                .course(courseRepository.getReferenceById(id))
-                                .timetable(timetable).build()).toList();
+        List<Long> courseIds = timetableSaveRequestData.getCourseIds();
+        log.info("요청받은 courseIds: {}", courseIds);
+
+        // courseIds가 실제로 DB에 존재하는지 확인하고 조회
+        var courses = courseRepository.findAllById(courseIds);
+        log.info("findAllById 결과 개수: {}", courses.size());
+
+        var courseMap = courses.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        course -> course.getCourseId(),
+                        course -> course
+                ));
+
+        log.info("courseMap 크기: {}, keys: {}", courseMap.size(), courseMap.keySet());
+
+        List<Long> missingCourseIds = courseIds.stream()
+                .filter(id -> !courseMap.containsKey(id))
+                .toList();
+
+        if (!missingCourseIds.isEmpty()) {
+            log.error("Missing courseIds in DB: {}", missingCourseIds);
+            throw new IllegalArgumentException("Following course IDs do not exist: " + missingCourseIds);
+        }
+
+        List<TimetableCourse> timetableCourseList = courseIds.stream()
+                .map(id -> {
+                    var course = courseMap.get(id);
+                    log.info("courseId {} -> Course: {}", id, course);
+                    if (course == null) {
+                        log.error("courseMap.get({}) returned null!", id);
+                    }
+                    return TimetableCourse.builder()
+                            .course(course)
+                            .timetable(timetable)
+                            .build();
+                })
+                .toList();
+
+        log.info("TimetableCourse 개수: {}", timetableCourseList.size());
 
         timetable.getTimetableCourses().addAll(timetableCourseList);
 
+        log.info("save 호출 직전");
         timeTableRepository.save(timetable);
+        log.info("=== saveTimetable 완료 ===");
     }
 
 
