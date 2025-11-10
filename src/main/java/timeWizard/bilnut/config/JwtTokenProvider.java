@@ -7,7 +7,14 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Component
 public class JwtTokenProvider {
@@ -72,6 +79,11 @@ public class JwtTokenProvider {
                 .getPayload();
 
         return claims.get("userId", Long.class);
+    }
+    
+    // 토큰에서 권한 추출 (현재는 기본 USER 권한)
+    public List<GrantedAuthority> getAuthoritiesFromToken(String token) {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     // 유효성 검증
