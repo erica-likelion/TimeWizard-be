@@ -7,7 +7,14 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Component
 public class JwtTokenProvider {
@@ -26,12 +33,13 @@ public class JwtTokenProvider {
     }
 
     // Access Token 생성
-    public String generateAccessToken(String loginId) {
+    public String generateAccessToken(String email, Long userId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
-                .subject(loginId)
+                .subject(email)
+                .claim("userId", userId)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
@@ -39,20 +47,20 @@ public class JwtTokenProvider {
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(String loginId) {
+    public String generateRefreshToken(String email) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpiration);
 
         return Jwts.builder()
-                .subject(loginId)
+                .subject(email)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)
                 .compact();
     }
 
-    // 토큰에서 loginId 추출
-    public String getLoginIdFromToken(String token) {
+    // 토큰에서 이메일 추출
+    public String getEmailFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
@@ -60,6 +68,22 @@ public class JwtTokenProvider {
                 .getPayload();
 
         return claims.getSubject();
+    }
+    
+    // 토큰에서 User ID 추출
+    public Long getUserIdFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("userId", Long.class);
+    }
+    
+    // 토큰에서 권한 추출 (현재는 기본 USER 권한)
+    public List<GrantedAuthority> getAuthoritiesFromToken(String token) {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     // 유효성 검증
