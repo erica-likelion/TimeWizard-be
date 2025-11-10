@@ -1,9 +1,7 @@
 package timeWizard.bilnut.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,23 +14,23 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
+@Builder
+@AllArgsConstructor
 public class Timetable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "timetable_id")
-    private Long Id;
+    @Column(length = 36)
+    private String id; // redis transaction uuid key 그대로 pk로 사용
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(length = 100, nullable = false)
+    @Setter
+    @Column(length = 100)
     private String timetableName;
 
-    @Column(length = 10)
-    private String semester;
-
-    private Integer totalCredits = 0;
+    @Lob
+    private String aiComment;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -42,6 +40,7 @@ public class Timetable {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "timetable", cascade = CascadeType.REMOVE)
+    @Builder.Default
+    @OneToMany(mappedBy = "timetable",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimetableCourse> timetableCourses = new ArrayList<>();
 }
