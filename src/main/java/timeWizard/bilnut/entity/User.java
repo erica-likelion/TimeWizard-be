@@ -2,6 +2,7 @@ package timeWizard.bilnut.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -9,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -26,34 +28,39 @@ public class User {
     @Column(length = 255, nullable = false)
     private String password;
 
-    @Column(length = 50)
+    @Column(length = 50, nullable = false)
     private String nickname;
 
-    @Column( length = 100)
+    @Column(length = 20)
+    private String phoneNumber;
+
+    @Column(length = 100, nullable = false)
     private String university;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String major;
 
+    @Column(nullable = false)
     private Integer grade;
 
-    private String userPreferences;
-
-    private Integer totalRequiredCredit;
-
-    private Integer majorRequiredCredit;
-
-    private Integer generalRequiredCredit;
-
-    private Integer totalEarnedCredit;
-
-    private Integer majorEarnedCredit;
-
-    private Integer generalEarnedCredit;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RefreshToken> refreshTokens;
 
     @CreatedDate
     private LocalDateTime createdAt;
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    
+    @Builder
+    public User(String email, String password, String nickname, String phoneNumber,
+                String university, String major, Integer grade) {
+        this.email = email;
+        this.password = password;
+        this.nickname = nickname;
+        this.phoneNumber = phoneNumber;
+        this.university = university;
+        this.major = major;
+        this.grade = grade;
+    }
 }
