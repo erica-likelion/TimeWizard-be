@@ -8,20 +8,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.GrantedAuthority;
+import timeWizard.bilnut.security.CustomUserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -33,13 +34,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 토큰 유효성 검증
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                // 3. 토큰에서 loginId 추출
-                String loginId = jwtTokenProvider.getLoginIdFromToken(jwt);
+                // 3. JWT에서 사용자 정보 추출
+                String email = jwtTokenProvider.getEmailFromToken(jwt);
+                Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
 
-                // 4. loginId로 사용자 정보 로드
-                UserDetails userDetails = userDetailsService.loadUserByUsername(loginId);
+                // 4. JWT 정보로 사용자 권한 추출
+                List<GrantedAuthority> authorities = jwtTokenProvider.getAuthoritiesFromToken(jwt);
+                
+                // 5. CustomUserDetails 생성 (userId 포함)
+                UserDetails userDetails = new CustomUserDetails(userId, email, authorities);
 
-                // 5. Spring Security 인증 객체 생성
+                // 6. Spring Security 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
@@ -67,4 +72,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
 }
