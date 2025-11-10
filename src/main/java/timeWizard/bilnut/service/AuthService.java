@@ -87,7 +87,7 @@ public class AuthService {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             // 3. Access Token 생성
-            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), user.getUserId());
 
             // 4. Refresh Token 생성
             String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
@@ -132,7 +132,7 @@ public class AuthService {
         }
 
         // 4. 새로운 Access Token 생성
-        String newAccessToken = jwtTokenProvider.generateAccessToken(storedToken.getUser().getEmail());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(storedToken.getUser().getEmail(), storedToken.getUser().getUserId());
 
         // 5. 새로운 Refresh Token 생성 (선택사항 - Refresh Token도 갱신)
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(storedToken.getUser().getEmail());

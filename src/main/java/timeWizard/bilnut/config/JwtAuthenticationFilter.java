@@ -33,11 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. 토큰 유효성 검증
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                // 3. 토큰에서 loginId 추출
-                String loginId = jwtTokenProvider.getLoginIdFromToken(jwt);
+                // 3. 토큰에서 email 추출
+                String email = jwtTokenProvider.getEmailFromToken(jwt);
 
-                // 4. loginId로 사용자 정보 로드
-                UserDetails userDetails = userDetailsService.loadUserByUsername(loginId);
+                // 4. email로 사용자 정보 로드
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 // 5. Spring Security 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
