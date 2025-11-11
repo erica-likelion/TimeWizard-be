@@ -17,7 +17,7 @@ public class CorsConfig {
     public static CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(Arrays.asList("https://xmoonanx.shop", "http://localhost:8080"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("https://billnut.pdj.kr", "http://localhost:5173"));
 
         ArrayList<String> allowedHttpMethods = new ArrayList<>();
         allowedHttpMethods.add("GET");
