@@ -37,6 +37,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
                         .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
+                        // Swagger UI 접근 허용
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
