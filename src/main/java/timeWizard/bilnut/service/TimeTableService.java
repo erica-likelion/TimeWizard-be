@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import timeWizard.bilnut.config.exception.EntityNotFound;
 import timeWizard.bilnut.config.exception.NoDeletedRowException;
 import timeWizard.bilnut.dto.*;
 import timeWizard.bilnut.entity.Timetable;
@@ -114,11 +115,10 @@ public class TimeTableService {
 
     @Transactional
     public void deleteTimeTable(String timetableId) {
-        int deletedRows = timeTableRepository.deleteByIdCustom(timetableId);
+        Timetable timetable = timeTableRepository.findById(timetableId)
+                .orElseThrow(() -> new EntityNotFound("timetable not found with given id"));
 
-        if (deletedRows == 0) {
-            throw new NoDeletedRowException("No deleted row found");
-        }
+        timeTableRepository.delete(timetable);
     }
 
     public List<TimetableListData> getTimetableList(Long userId) {
