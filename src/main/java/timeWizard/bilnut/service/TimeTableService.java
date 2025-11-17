@@ -52,20 +52,13 @@ public class TimeTableService {
         AnalyzeRequirementsRequestDTO analyzeRequest = new AnalyzeRequirementsRequestDTO(requestText);
         User user = userRepository.findById(userId).orElseThrow(EntityExistsException::new);
 
-        log.info("=== [1단계] /analyze-requirements 요청 시작 ===");
-        log.info("요청 데이터: {}", analyzeRequest);
-
         webClient.post()
                 .uri("/analyze-requirements")
                 .bodyValue(analyzeRequest)
                 .retrieve()
                 .bodyToMono(AnalyzeRequirementsResponse.class)
                 .flatMap(analyzeResponse -> {
-                    log.info("=== [1단계] /analyze-requirements 응답 받음 ===");
-                    log.info("응답 데이터: {}", analyzeResponse);
-
                     List<CourseDataDTO> filteredCourses = filterCourses(analyzeResponse, user);
-                    log.info("필터링된 강의 개수: {}", filteredCourses.size());
 
                     TimetableRequestDTO timetableRequest = TimetableRequestDTO.builder()
                             .depart(user.getMajor())
@@ -76,11 +69,6 @@ public class TimeTableService {
                             .requirement(requestText)
                             .courses(filteredCourses)
                             .build();
-
-                    log.info("=== [2단계] /generate-timetable 요청 시작 ===");
-                    log.info("요청 데이터: {}", timetableRequest);
-                    log.info("강의 목록 ({}개):", filteredCourses.size());
-                    filteredCourses.forEach(course -> log.info("  - {}", course));
 
                     return webClient.post()
                             .uri("/generate-timetable")
