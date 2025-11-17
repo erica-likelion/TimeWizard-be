@@ -86,7 +86,7 @@ public class TimeTableService {
     }
 
     private List<CourseDataDTO> filterCourses(AnalyzeRequirementsResponse analyzeResponse, User user) {
-        List<Course> allCourses = courseRepository.findByDepart(user.getMajor());
+        List<Course> allCourses = courseRepository.findByDepart(user.getMajor(), analyzeResponse.getIncludeCourses());
 
         return allCourses.stream()
                 .filter(course -> {
