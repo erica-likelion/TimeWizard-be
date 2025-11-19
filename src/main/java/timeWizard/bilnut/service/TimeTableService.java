@@ -1,19 +1,17 @@
 package timeWizard.bilnut.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityExistsException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 import timeWizard.bilnut.config.exception.EntityNotFound;
-import timeWizard.bilnut.config.exception.NoDeletedRowException;
 import timeWizard.bilnut.dto.*;
+import timeWizard.bilnut.entity.Course;
+import timeWizard.bilnut.entity.CourseTimes;
 import timeWizard.bilnut.entity.Timetable;
 import timeWizard.bilnut.entity.TimetableCourse;
 import timeWizard.bilnut.entity.User;
@@ -36,35 +34,121 @@ public class TimeTableService {
     private final CourseRepository courseRepository;
     private final TimetableCourseRepository timetableCourseRepository;
 
-    public String requestAiTimeTable(AiTimetableRequestData aiTimetableRequestData) {
+    public String requestAiTimeTable(AiTimetableRequestData aiTimetableRequestData, Long userId) {
         String redisKey = UUID.randomUUID().toString();
 
         redisTemplate.opsForValue().set(redisKey, "WAITING", Duration.ofMinutes(10));
         sendAiRequest(aiTimetableRequestData.requestText(),
                 aiTimetableRequestData.maxCredit(),
                 aiTimetableRequestData.targetCredit(),
-                redisKey);
+                redisKey,
+                userId);
         return redisKey;
     }
 
     @Async("aiApiRequestExecutor")
     @Transactional
-    public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey) { // 아직 로그인이 구현이 안돼서 더미 데이터로 구현
-        AiRequestFormData aiRequestFormData = new AiRequestFormData("로봇공학과",
-                2, 1, targetCredit, maxCredit, requestText,
-                "https://storage.googleapis.com/mysmbuckettt/erica_courses_filtered.csv",
-                "https://site.hanyang.ac.kr/documents/11050741/13154841/이수체계도(로봇공학과).png?t=1684909574755");
+    public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey, Long userId) {
+        AnalyzeRequirementsRequestDTO analyzeRequest = new AnalyzeRequirementsRequestDTO(requestText);
+        User user = userRepository.findById(userId).orElseThrow(EntityExistsException::new);
 
         webClient.post()
-                .uri("/generate-timetable")
-                .bodyValue(aiRequestFormData)
+                .uri("/analyze-requirements")
+                .bodyValue(analyzeRequest)
                 .retrieve()
-                .bodyToMono(String.class)
+                .bodyToMono(AnalyzeRequirementsResponse.class)
+                .flatMap(analyzeResponse -> {
+                    List<CourseDataDTO> filteredCourses = filterCourses(analyzeResponse, user);
+
+                    TimetableRequestDTO timetableRequest = TimetableRequestDTO.builder()
+                            .depart(user.getMajor())
+                            .grade(user.getGrade())
+                            .semester(2)
+                            .goalCredit(targetCredit)
+                            .maxCredit(maxCredit)
+                            .requirement(requestText)
+                            .courses(filteredCourses)
+                            .build();
+
+                    return webClient.post()
+                            .uri("/generate-timetable")
+                            .bodyValue(timetableRequest)
+                            .retrieve()
+                            .bodyToMono(String.class);
+                })
                 .doOnSuccess(jsonResponse ->
                         redisTemplate.opsForValue().set(redisKey, jsonResponse, Duration.ofMinutes(10)))
-                .doOnError(error ->
-                        redisTemplate.opsForValue().set(redisKey, "ERROR", Duration.ofMinutes(10)))
+                .doOnError(error -> {
+                    log.error("Error during AI request", error);
+                    redisTemplate.opsForValue().set(redisKey, "ERROR", Duration.ofMinutes(10));
+                })
                 .subscribe();
+    }
+
+    private List<CourseDataDTO> filterCourses(AnalyzeRequirementsResponse analyzeResponse, User user) {
+        List<Course> allCourses = courseRepository.findByDepart(user.getMajor(), analyzeResponse.getIncludeCourses());
+
+        return allCourses.stream()
+                .filter(course -> {
+                    if (analyzeResponse.getExcludeCourses() != null && !analyzeResponse.getExcludeCourses().isEmpty()) {
+                        boolean excluded = analyzeResponse.getExcludeCourses().stream()
+                                .anyMatch(exclude ->
+                                        course.getCourseName().contains(exclude));
+                        if (excluded) return false;
+                    }
+
+                    if (analyzeResponse.getExcludeTimeBlocks() != null && !analyzeResponse.getExcludeTimeBlocks().isEmpty()) {
+                        boolean hasConflict = course.getCourseTimes().stream()
+                                .anyMatch(courseTime ->
+                                        analyzeResponse.getExcludeTimeBlocks().stream()
+                                                .anyMatch(excludeBlock -> isTimeConflict(courseTime, excludeBlock)));
+                        if (hasConflict) return false;
+                    }
+
+                    return true;
+                })
+                .map(this::convertToCourseDataDTO)
+                .toList();
+    }
+
+    private boolean isTimeConflict(CourseTimes courseTime, ExcludeTimeBlockDTO excludeBlock) {
+        // "all"인 경우 모든 요일에 적용
+        if ("all".equalsIgnoreCase(excludeBlock.getDay())) {
+            return isTimeOverlap(courseTime.getStartTime(), courseTime.getEndTime(),
+                    excludeBlock.getStartTime(), excludeBlock.getEndTime());
+        }
+
+        // 요일이 일치하고 시간이 겹치는지 확인
+        if (courseTime.getDayOfWeek().name().equals(excludeBlock.getDay())) {
+            return isTimeOverlap(courseTime.getStartTime(), courseTime.getEndTime(),
+                    excludeBlock.getStartTime(), excludeBlock.getEndTime());
+        }
+
+        return false;
+    }
+
+    private boolean isTimeOverlap(Integer start1, Integer end1, Integer start2, Integer end2) {
+        // 시간이 겹치는지 확인
+        return start1 < end2 && start2 < end1;
+    }
+
+    private CourseDataDTO convertToCourseDataDTO(Course course) {
+        List<CourseTimeRequestDTO> courseTimes = course.getCourseTimes().stream()
+                .map(ct -> CourseTimeRequestDTO.builder()
+                        .day(ct.getDayOfWeek().name())
+                        .startTime(ct.getStartTime())
+                        .endTime(ct.getEndTime())
+                        .build())
+                .toList();
+
+        return CourseDataDTO.builder()
+                .courseId(course.getCourseId())
+                .courseName(course.getCourseName())
+                .professor(course.getProfessor())
+                .credit(course.getCredits())
+                .courseType(course.getCourseType())
+                .courseTimes(courseTimes)
+                .build();
     }
 
     @Transactional

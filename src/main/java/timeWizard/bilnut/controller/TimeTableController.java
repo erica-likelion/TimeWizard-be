@@ -42,8 +42,8 @@ public class TimeTableController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터")
     })
     @PostMapping("/ai/generate-timetable")
-    public ResponseEntity<String> requestAiTimetable(@RequestBody AiTimetableRequestData aiTimetableRequestData) {
-        String uuidKey =  timeTableService.requestAiTimeTable(aiTimetableRequestData);
+    public ResponseEntity<String> requestAiTimetable(@RequestBody AiTimetableRequestData aiTimetableRequestData, @AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        String uuidKey =  timeTableService.requestAiTimeTable(aiTimetableRequestData, customUserDetails.getUserId());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(uuidKey);
     }
 
