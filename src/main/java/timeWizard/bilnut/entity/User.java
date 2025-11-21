@@ -43,6 +43,15 @@ public class User {
     @Column(nullable = false)
     private Integer grade;
 
+    @Column(nullable = true)
+    private Integer graduationCredits;
+
+    @Column(nullable = true)
+    private Integer completedCredits;
+
+    @Column(columnDefinition = "TEXT")
+    private String preferences;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RefreshToken> refreshTokens;
 
@@ -62,5 +71,38 @@ public class User {
         this.university = university;
         this.major = major;
         this.grade = grade;
+    }
+
+    // 회원 정보 수정 메서드
+    public void updateUserInfo(String nickname, String phoneNumber, String major, Integer grade, 
+                               Integer graduationCredits, Integer completedCredits) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (phoneNumber != null) {
+            this.phoneNumber = phoneNumber;
+        }
+        if (major != null) {
+            this.major = major;
+        }
+        if (grade != null) {
+            this.grade = grade;
+        }
+        if (graduationCredits != null) {
+            this.graduationCredits = graduationCredits;
+        }
+        if (completedCredits != null) {
+            this.completedCredits = completedCredits;
+        }
+    }
+
+    // 비밀번호 변경 메서드
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    // 선호도 저장/수정 메서드
+    public void updatePreferences(String preferences) {
+        this.preferences = preferences;
     }
 }
