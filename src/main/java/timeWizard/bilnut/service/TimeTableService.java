@@ -38,7 +38,7 @@ public class TimeTableService {
         String redisKey = UUID.randomUUID().toString();
 
         redisTemplate.opsForValue().set(redisKey, "WAITING", Duration.ofMinutes(10));
-        sendAiRequest(aiTimetableRequestData.requestText(),
+        sendAiTimetableRequest(aiTimetableRequestData.requestText(),
                 aiTimetableRequestData.maxCredit(),
                 aiTimetableRequestData.targetCredit(),
                 redisKey,
@@ -48,7 +48,7 @@ public class TimeTableService {
 
     @Async("aiApiRequestExecutor")
     @Transactional
-    public void sendAiRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey, Long userId) {
+    public void sendAiTimetableRequest(String requestText, Integer maxCredit, Integer targetCredit, String redisKey, Long userId) {
         AnalyzeRequirementsRequestDTO analyzeRequest = new AnalyzeRequirementsRequestDTO(requestText);
         User user = userRepository.findById(userId).orElseThrow(EntityExistsException::new);
 
@@ -58,6 +58,7 @@ public class TimeTableService {
                 .retrieve()
                 .bodyToMono(AnalyzeRequirementsResponse.class)
                 .flatMap(analyzeResponse -> {
+                    log.info(analyzeResponse.toString());
                     List<CourseDataDTO> filteredCourses = filterCourses(analyzeResponse, user);
 
                     TimetableRequestDTO timetableRequest = TimetableRequestDTO.builder()
@@ -76,6 +77,32 @@ public class TimeTableService {
                             .retrieve()
                             .bodyToMono(String.class);
                 })
+                .doOnSuccess(jsonResponse ->
+                        redisTemplate.opsForValue().set(redisKey, jsonResponse, Duration.ofMinutes(10)))
+                .doOnError(error -> {
+                    log.error("Error during AI request", error);
+                    redisTemplate.opsForValue().set(redisKey, "ERROR", Duration.ofMinutes(10));
+                })
+                .subscribe();
+    }
+
+    public String makePlanner(String timetableId) {
+        List<CourseResponseDTO> courseData = getTimetableCourses(timetableId);
+        String redisKey = UUID.randomUUID().toString();
+
+        redisTemplate.opsForValue().set(redisKey, "WAITING", Duration.ofMinutes(10));
+        sendAiPlannerRequest(redisKey, courseData);
+
+        return redisKey;
+    }
+
+    @Async("aiApiRequestExecutor")
+    public void sendAiPlannerRequest(String redisKey, List<CourseResponseDTO> courseData) {
+        webClient.post()
+                .uri("/prioritize-courses")
+                .bodyValue(courseData)
+                .retrieve()
+                .bodyToMono(String.class)
                 .doOnSuccess(jsonResponse ->
                         redisTemplate.opsForValue().set(redisKey, jsonResponse, Duration.ofMinutes(10)))
                 .doOnError(error -> {

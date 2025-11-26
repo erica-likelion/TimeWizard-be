@@ -66,6 +66,7 @@ public class TimeTableController {
             @ApiResponse(responseCode = "200", description = "상태 조회 성공"),
             @ApiResponse(responseCode = "404", description = "해당 키로 요청된 작업을 찾을 수 없음")
     })
+
     @GetMapping("/check/{uuidKey}/status")
     public ResponseEntity<AiStatusResponse> checkAiResponse(
             @Parameter(description = "AI 시간표 생성 요청 시 받은 UUID 키") @PathVariable String uuidKey) {
@@ -110,5 +111,11 @@ public class TimeTableController {
             @Parameter(description = "조회할 시간표 ID") @PathVariable("id") String timetableId) {
         List<CourseResponseDTO> courses = timeTableService.getTimetableCourses(timetableId);
         return ResponseEntity.ok(courses);
+    }
+
+    @PostMapping("/timetable/{id}/plans")
+    public ResponseEntity<String> getPlans(@PathVariable("id") String timetableId) {
+        String uuidKey = timeTableService.makePlanner(timetableId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(uuidKey);
     }
 }

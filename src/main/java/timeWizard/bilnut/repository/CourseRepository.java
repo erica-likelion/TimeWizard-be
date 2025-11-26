@@ -11,4 +11,8 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     @Query("SELECT DISTINCT c FROM Course c LEFT JOIN FETCH c.courseTimes WHERE c.major = :depart OR c.major = 'ERICA 대학' OR c.courseName IN :includeCourses")
     List<Course> findByDepart(@Param("depart") String depart, List<String> includeCourses);
+
+    // 디버깅용: 모든 수업 조회
+    @Query("SELECT DISTINCT c FROM Course c LEFT JOIN FETCH c.courseTimes")
+    List<Course> findAllCourses();
 }
