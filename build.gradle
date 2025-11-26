@@ -14,6 +14,16 @@ java {
 	}
 }
 
+tasks.withType(JavaExec) {
+	systemProperty 'file.encoding', 'UTF-8'
+	systemProperty 'console.encoding', 'UTF-8'
+	jvmArgs = ['-Dfile.encoding=UTF-8', '-Dconsole.encoding=UTF-8']
+}
+
+tasks.withType(Test) {
+	systemProperty 'file.encoding', 'UTF-8'
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
